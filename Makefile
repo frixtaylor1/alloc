@@ -5,7 +5,7 @@ ASM = nasm
 ASMFLAGS = -f elf64
 
 SRC_DIR = src
-BUILD_DIR = build
+BUILD_DIR = .build
 BIN = $(BUILD_DIR)/alloc
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
