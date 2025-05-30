@@ -8,7 +8,7 @@ Header *next_header(Header *header) {
 }
 
 Header *find_block(Header *current, word wordsToAlloc) {
-  if ((int8 *)current >= lastAddress) {
+  if ($1 current >= lastAddress) {
     return nullptr;
   }
   if (!current->alloced) return current;
@@ -32,12 +32,12 @@ void *alloc(int32 bytes) {
     }
 
     if (header->words >= wordsToAlloc) {
-      Header *next = next_header(header);
-      next->words = wordsToAlloc;
-      next->alloced = false;
+      Header *next   = next_header(header);
+      next->words    = wordsToAlloc;
+      next->alloced  = false;
       next->reserved = false;
-      header->words = wordsToAlloc;
 
+      header->words = wordsToAlloc;
       header->alloced = true;
       return $v (header + 1);
     }
