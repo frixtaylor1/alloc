@@ -1,19 +1,39 @@
 #include "../include/alloc.hpp"
 #include <assert.h>
+#include <stdio.h>
 
 static byte *lastAddress = ($1 memspace + (1024 * 1024 * 1024));
 
-Header *next_header(Header *header) {
+struct alignas(4)
+Header {
+  Header(): words(0), alloced(false) {
+}
+  word words : 30;
+  bool alloced : 1;
+  [[maybe_unused]] bool reserved : 1;
+};
+
+#define $h (Header *)
+
+word _calculate_words_given_bytes(int32 bytes) {
+  return !(bytes % 4) ? bytes / 4 : bytes / 4 + 1;
+}
+
+Header *_get_header_given_ptr(void *ptr) {
+  return $h ptr - 1;
+}
+
+Header *_next_header(Header *header) {
   return $h ($1 (header + 1) + header->words * 4);
 }
 
-Header *find_block(Header *current, word wordsToAlloc) {
+Header *_find_block(Header *current, word wordsToAlloc) {
   if ($1 current >= lastAddress) {
     return nullptr;
   }
   if (!current->alloced) return current;
 
-  return find_block(next_header(current), wordsToAlloc);
+  return _find_block(_next_header(current), wordsToAlloc);
 }
 
 void *alloc(int32 bytes) {
@@ -32,7 +52,7 @@ void *alloc(int32 bytes) {
     }
 
     if (header->words >= wordsToAlloc) {
-      Header *next   = next_header(header);
+      Header *next   = _next_header(header);
       next->words    = wordsToAlloc;
       next->alloced  = false;
       next->reserved = false;
@@ -43,7 +63,7 @@ void *alloc(int32 bytes) {
     }
   }
 
-  Header *found = find_block(header, wordsToAlloc);
+  Header *found = _find_block(header, wordsToAlloc);
   if (found) {
     found->alloced = true;
     return $v (found + 1);
@@ -53,16 +73,29 @@ void *alloc(int32 bytes) {
 }
 
 void dealloc(void *ptr) {
-  (void) ptr;
-  assert(false && "MUST IMPLEMENT!");
+  Header *header = _get_header_given_ptr(ptr);
+
+  if (!header->alloced) assert(header->alloced && "Double free! %d");
+  header->alloced = 0;
+}
+
+void *realloc(void *ptr, int32 bytes) {
+  Header *header = _get_header_given_ptr(ptr);
+
+  word wordsNeeded = _calculate_words_given_bytes(bytes);
+  if (header->words >= wordsNeeded) {
+    header->words = wordsNeeded;
+    return ptr;
+  }
+
+  dealloc(ptr);
+
+  return alloc(bytes);
 }
 
 int main(int argc, const char *argv[]) {
   (void) argc;
   (void) argv;
-
-  int32 *a = (int32 *)alloc(4);
-  *a = 10;
 
   int32 *b = (int32 *)alloc(4);
   *b = 11;
@@ -70,7 +103,6 @@ int main(int argc, const char *argv[]) {
   int32 *c = (int32 *)alloc(4);
   *c = 11;
 
-  dealloc(a);
   dealloc(b);
   dealloc(c);
 

@@ -18,20 +18,9 @@ typedef int8               byte;
 #define $8 (int64 *)
 #define $i (int *)
 #define $v (void *)
-#define $h (Header *)
 
 extern "C" heap *memspace;
 
-struct alignas(4)
-Header {
-  Header(): words(0), alloced(false) {
-}
-  word words : 30;
-  bool alloced : 1;
-  [[maybe_unused]] bool reserved : 1;
-};
-
-Header *next_header(Header *, word);
 void *alloc(int32 bytes);
 void dealloc(void *ptr);
 
